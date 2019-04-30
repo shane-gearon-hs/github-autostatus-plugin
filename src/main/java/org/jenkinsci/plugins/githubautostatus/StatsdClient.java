@@ -28,6 +28,7 @@ import com.timgroup.statsd.StatsDClient;
 import com.timgroup.statsd.StatsDClientException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -99,15 +100,18 @@ public class StatsdClient implements StatsdWrapper {
         this.port = port;
 
         this.lock = new ReentrantReadWriteLock();
-        ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+        // ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+        ScheduledThreadPoolExecutor exec = new ScheduledThreadPoolExecutor(1);
+        exec.setRemoveOnCancelPolicy(true);
 
-        exec.scheduleAtFixedRate(new Runnable() {
+        Runnable task = new Runnable() {
             @Override
             public void run() {
                 System.out.println("Refreshing Client");
                 newClient();
             }
-        }, CLIENT_TTL, CLIENT_TTL, TimeUnit.SECONDS);
+        };
+        exec.scheduleAtFixedRate(task, CLIENT_TTL, CLIENT_TTL, TimeUnit.SECONDS);
 
         this.newClient();
     }
